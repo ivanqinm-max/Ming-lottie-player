@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qinming Lottie - 动画在线预览与调试工具 (终极复刻版)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lottie-web/5.12.2/lottie.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased">
+
+    <header class="border-b border-slate-800 bg-slate-900/50 backdrop-blur-md sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <span class="text-slate-950 font-black text-xl tracking-tighter">L</span>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">Qinming Lottie</h1>
+                    <p class="text-xs text-slate-500 font-medium">Lottie 全兼容调试专家 v2.0</p>
+                </div>
+            </div>
+            <div id="statusLabel" class="text-xs text-slate-400 font-mono bg-slate-900 px-3 py-1 rounded-full border border-slate-800">等待文件导入...</div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <div class="lg:col-span-2 space-y-6">
+            <div id="previewStage" class="bg-slate-900 border border-slate-800 rounded-2xl aspect-video flex items-center justify-center relative overflow-hidden shadow-2xl transition-all">
+                <div id="lottieContainer" class="w-full h-full flex items-center justify-center p-4"></div>
+
+                <div id="uploadPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/80 backdrop-blur-sm cursor-pointer border-2 border-dashed border-slate-800 hover:border-emerald-500/50 m-4 rounded-xl transition-all" onclick="document.getElementById('fileInput').click()">
+                    <input type="file" id="fileInput" accept=".json,.zip" class="hidden">
+                    <svg class="w-12 h-12 text-slate-600 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                    <p class="text-sm font-medium text-slate-300">点击选择 或 将 Lottie 文件拖到这里</p>
+                    <p class="text-xs text-slate-500 mt-1">完美兼容：单个 <span class="text-emerald-400">.json</span> / 包含图片文件夹的 <span class="text-teal-400">.zip</span> 压缩包</p>
+                </div>
+            </div>
+
+            <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex items-center space-x-4">
+                <button id="playBtn" disabled class="p-2 bg-slate-800 rounded-lg text-slate-400 hover:text-white transition-colors cursor-not-allowed">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                </button>
+                <input type="range" id="progressBar" min="0" max="100" value="0" disabled class="w-full accent-emerald-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-not-allowed opacity-50">
+                <span id="frameText" class="text-xs font-mono text-slate-500 whitespace-nowrap">0 / 0 帧</span>
+            </div>
+        </div>
+
+        <div class="lg:col-span-1 space-y-6">
+            <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 space-y-5">
+                <h3 class="text-sm font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800 pb-2">🎛️ 属性调节面板</h3>
+                
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-2">画布背景色 (Background)</label>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="changeBg('#0f172a')" class="w-6 h-6 rounded-full bg-slate-900 border border-slate-700 active:ring-2 active:ring-emerald-500"></button>
+                        <button onclick="changeBg('#ffffff')" class="w-6 h-6 rounded-full bg-white border border-slate-300 active:ring-2 active:ring-emerald-500"></button>
+                        <button onclick="changeBg('transparent')" class="w-6 h-6 rounded-full bg-opacity-0 border-2 border-dashed border-slate-600 active:ring-2 active:ring-emerald-500" title="透明网格"></button>
+                        <input type="color" id="customColor" onchange="changeBg(this.value)" class="w-7 h-7 bg-transparent border-0 cursor-pointer p-0">
+                        <span class="text-xs text-slate-500">自定义</span>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1.5">播放速度 (Speed)</label>
+                    <select id="speedSelect" disabled class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-emerald-500 text-slate-400 cursor-not-allowed">
+                        <option value="0.5">0.5x 慢速</option>
+                        <option value="1" selected>1.0x 正常速度</option>
+                        <option value="1.5">1.5x 加速</option>
+                        <option value="2">2.0x 双倍速</option>
+                    </select>
+                </div>
+
+                <button id="reuploadBtn" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 py-2.5 rounded-xl text-xs font-medium transition-colors hidden" onclick="document.getElementById('fileInput').click()">
+                    更换 Lottie / ZIP 文件
+                </button>
+            </div>
+
+            <div id="infoPanel" class="bg-slate-900/20 border border-slate-900 rounded-2xl p-5 text-xs text-slate-500 space-y-2.5 hidden">
+                <p class="font-semibold text-slate-400 text-[13px] mb-1">📊 动画基本元数据</p>
+                <p>文件名称: <span id="infoName" class="text-slate-300 font-mono break-all"></span></p>
+                <p>识别格式: <span id="infoType" class="text-emerald-400 font-bold font-mono"></span></p>
+                <p>画布尺寸: <span id="infoSize" class="text-slate-300 font-mono"></span></p>
+                <p>动画帧率: <span id="infoFps" class="text-slate-300 font-mono"></span></p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const stage = document.getElementById('previewStage');
+        const fileInput = document.getElementById('fileInput');
+        const container = document.getElementById('lottieContainer');
+        const placeholder = document.getElementById('uploadPlaceholder');
+        const statusLabel = document.getElementById('statusLabel');
+        
+        const playBtn = document.getElementById('playBtn');
+        const progressBar = document.getElementById('progressBar');
+        const frameText = document.getElementById('frameText');
+        const speedSelect = document.getElementById('speedSelect');
+        const reuploadBtn = document.getElementById('reuploadBtn');
+        
+        const infoPanel = document.getElementById('infoPanel');
+        const infoName = document.getElementById('infoName');
+        const infoType = document.getElementById('infoType');
+        const infoSize = document.getElementById('infoSize');
+        const infoFps = document.getElementById('infoFps');
+
+        let animInstance = null; 
+        let isPlaying = false;
+
+        // 监听拖拽行为
+        stage.addEventListener('dragover', (e) => { e.preventDefault(); stage.classList.add('border-emerald-500/40'); });
+        stage.addEventListener('dragleave', () => { stage.classList.remove('border-emerald-500/40'); });
+        stage.addEventListener('drop', (e) => {
+            e.preventDefault();
+            stage.classList.remove('border-emerald-500/40');
+            if(e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files[0]);
+        });
+        fileInput.addEventListener('change', (e) => {
+            if(e.target.files.length > 0) handleFiles(e.target.files[0]);
+        });
+
+        // 核心文件分流器
+        async function handleFiles(file) {
+            statusLabel.textContent = "解析文件中...";
+            const filename = file.name;
+            
+            if (filename.toLowerCase().endsWith('.json')) {
+                // 情况 A：单 JSON 文件导入
+                const reader = new FileReader();
+                reader.onload = (e) => renderLottie(JSON.parse(e.target.result), filename, "标准单文件 JSON");
+                reader.readAsText(file);
+            } else if (filename.toLowerCase().endsWith('.zip')) {
+                // 情况 B：ZIP 压缩包深度解压识别（采用极稳的 JSZip 穿透算法）
+                try {
+                    const zip = await JSZip.loadAsync(file);
+                    let jsonFile = null;
+                    const imageBlobs = {};
+
+                    // 1. 深度遍历 ZIP，捞出所有的 JSON 和图片，自动过滤 Mac 的缓存干扰
+                    for (let relativePath in zip.files) {
+                        const zipEntry = zip.files[relativePath];
+                        if (zipEntry.dir || relativePath.includes('__MACOSX')) continue;
+
+                        const nameLower = relativePath.toLowerCase();
+                        if (nameLower.endsWith('.json') && !jsonFile) {
+                            jsonFile = zipEntry;
+                        } else if (nameLower.endsWith('.png') || nameLower.endsWith('.jpg') || nameLower.endsWith('.jpeg')) {
+                            const baseName = relativePath.split('/').pop();
+                            const blob = await zipEntry.async("blob");
+                            imageBlobs[baseName] = URL.createObjectURL(blob);
+                        }
+                    }
+
+                    if (!jsonFile) {
+                        alert("压缩包内未检测到任何有效的 .json 配置文件！");
+                        statusLabel.textContent = "解析失败";
+                        return;
+                    }
+
+                    // 2. 读取主配置并改写图片重映射
+                    const jsonText = await jsonFile.async("text");
+                    let jsonData = JSON.parse(jsonText);
+
+                    if (jsonData.assets && jsonData.assets.length > 0) {
+                        jsonData.assets.forEach(asset => {
+                            // 穿透目录层级，直接比对图片文件名
+                            if (asset.p && imageBlobs[asset.p]) {
+                                asset.u = ""; // 擦除相对路径依赖
+                                asset.p = imageBlobs[asset.p]; // 注入虚拟本地内存链接
+                            }
+                        });
+                    }
+
+                    renderLottie(jsonData, filename, "ZIP 深度解压树");
+
+                } catch (err) {
+                    alert("ZIP 包读取失败，可能文件损坏或非标准压缩格式。");
+                    statusLabel.textContent = "错误";
+                    console.error(err);
+                }
+            } else {
+                alert("格式不兼容！请拖入 .json 或者是 .zip 文件。");
+                statusLabel.textContent = "等待文件...";
+            }
+        }
+
+        // 最终将数据喂给 Lottie 引擎渲染
+        function renderLottie(jsonData, filename, typeText) {
+            if (animInstance) { animInstance.destroy(); }
+
+            // 解锁控制台界面
+            placeholder.classList.add('hidden');
+            reuploadBtn.classList.remove('hidden');
+            infoPanel.classList.remove('hidden');
+            playBtn.removeAttribute('disabled');
+            playBtn.classList.remove('cursor-not-allowed');
+            progressBar.removeAttribute('disabled');
+            progressBar.classList.remove('cursor-not-allowed', 'opacity-50');
+            speedSelect.removeAttribute('disabled');
+            speedSelect.classList.remove('cursor-not-allowed');
+
+            // 填充面板元数据
+            infoName.textContent = filename;
+            infoType.textContent = typeText;
+            infoSize.textContent = `${jsonData.w || '自适应'} x ${jsonData.h || '自适应'} px`;
+            infoFps.textContent = `${jsonData.fr || '24'} FPS`;
+
+            // 引擎装载
+            animInstance = lottie.loadAnimation({
+                container: container,
+                renderer: 'svg',
+                loop: true,
+                autoplay: true,
+                animationData: jsonData
+            });
+
+            isPlaying = true;
+            statusLabel.textContent = "正在播放动画";
+            updatePlayIcon();
+
+            // 帧进度同步
+            animInstance.addEventListener('enterFrame', () => {
+                const cur = Math.floor(animInstance.currentFrame);
+                const tot = Math.floor(animInstance.totalFrames);
+                progressBar.max = tot;
+                progressBar.value = cur;
+                frameText.textContent = `${cur} / ${tot} 帧`;
+            });
+
+            speedSelect.onchange = () => animInstance.setSpeed(parseFloat(speedSelect.value));
+        }
+
+        // 播放与暂停切换
+        playBtn.addEventListener('click', () => {
+            if (!animInstance) return;
+            if (isPlaying) {
+                animInstance.pause();
+                isPlaying = false;
+                statusLabel.textContent = "已暂停";
+            } else {
+                animInstance.play();
+                isPlaying = true;
+                statusLabel.textContent = "正在播放动画";
+            }
+            updatePlayIcon();
+        });
+
+        // 逐帧拉动轴
+        progressBar.addEventListener('input', () => {
+            if (!animInstance) return;
+            animInstance.goToAndStop(parseInt(progressBar.value), true);
+            isPlaying = false;
+            statusLabel.textContent = "逐帧调试中";
+            updatePlayIcon();
+        });
+
+        function updatePlayIcon() {
+            playBtn.innerHTML = isPlaying ? 
+                `<svg class="w-5 h-5 text-emerald-400" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>` : 
+                `<svg class="w-5 h-5 text-slate-300" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>`;
+        }
+
+        function changeBg(color) {
+            stage.style.backgroundImage = color === 'transparent' ? 'linear-gradient(45deg, #1e293b 25%, transparent 25%), linear-gradient(-45deg, #1e293b 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #1e293b 75%), linear-gradient(-45deg, transparent 75%, #1e293b 75%)' : 'none';
+            stage.style.backgroundSize = color === 'transparent' ? '20px 20px' : 'auto';
+            stage.style.backgroundColor = color === 'transparent' ? 'transparent' : color;
+        }
+    </script>
+</body>
+</html>
