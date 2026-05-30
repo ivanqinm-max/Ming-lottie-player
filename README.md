@@ -1,5 +1,5 @@
-# 🛠️ Qinming Lottie 动画调试工具
+# 🎨 我的专业技能：Lottie 动效在线调试专家
 
-这是一个在线 Lottie 动画预览工具，支持拖入 `.json` 或 `.zip` 压缩包进行逐帧调试。
+这是一个我独立开发并部署在 Netlify 上的 Lottie 动画高精度预览与调试工具。
 
-👉 [点击这里直接打开在线预览](https://你的netlify网址.netlify.app)
+👉 **[点击这里，立即体验我的 Lottie 调试工具](替换成你现在Netlify的真实网址)**
